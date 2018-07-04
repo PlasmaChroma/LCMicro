@@ -1,23 +1,23 @@
 #include "font7seg.h"
 #include "ht16k33.h"
 
-// Class to control the hk16k33 display chip
+// Class to control the ht16k33 display chip
 HT16K33 htd;
 
 // PIN configruation
-const int tempPin = 0;
-const int pwmPin = 6;
-const int rpmPin = 7;
+const uint8_t tempPin = 0;
+const uint8_t pwmPin = 6;
+const uint8_t rpmPin = 7;
 
 // Temperature reading setup
 #define TEMP_READING_COUNT 10
-int readingsIndex = 0;
+uint8_t readingsIndex = 0;
 double readings[TEMP_READING_COUNT] = { 0 };
 
-const int loopDelay = 100;
-const int cyclesPerSecond = 1000 / loopDelay;
-const int cyclesPerFiveSecond = (5 * 1000) / loopDelay;
-const long cyclesPerMinute = (60L * 1000L) / loopDelay;
+const uint16_t loopDelay = 100;
+const uint16_t cyclesPerSecond = 1000 / loopDelay;
+const uint16_t cyclesPerFiveSecond = (5 * 1000) / loopDelay;
+const uint32_t cyclesPerMinute = (60L * 1000L) / loopDelay;
 
 const int fanDivisor = 2; // unipole hall effect sensor
 
@@ -32,7 +32,7 @@ void setup()
 {
   htd.define7segFont(font7s);
   htd.begin(0x70);
-  htd.setBrightness(1);
+  htd.setBrightness(16);
 
   // fan pwm control
   pinMode(pwmPin, OUTPUT);
@@ -42,13 +42,13 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(rpmPin), rpmCallback, RISING);
 
   // debug port
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 double readTempC(double tempPin)
 {
-  int tempReading = analogRead(tempPin);
-  double tempK = log(10000.0 * ((1024.0 / tempReading - 1)));
+  uint16_t tempReading = analogRead(tempPin);
+  double tempK = log(10000.0 * ((1024.0 / tempReading - 1.0)));
   tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK );       //  Temp Kelvin
   double tempC = tempK - 273.15;            // Convert Kelvin to Celcius
   double tempF = (tempC * 9.0)/ 5.0 + 32.0; // Convert Celcius to Fahrenheit
@@ -69,9 +69,9 @@ void outputTempC(double tempC)
   if (tempC < 100)
   {
     // display 10ths of a degree
-    int tens = (int)tempC / 10;
-    int ones = (int)tempC % 10;
-    int tenths = int(tempC * 10 - (floor(tempC)) * 10);
+    uint16_t tens   = (uint16_t)tempC / 10;
+    uint16_t ones   = (uint16_t)tempC % 10;
+    uint16_t tenths = (uint16_t)(tempC * 10 - (floor(tempC)) * 10);
 
     htd.set7Seg(0, tens, false);
     htd.set7Seg(1, ones, true);
@@ -81,17 +81,17 @@ void outputTempC(double tempC)
   }
 }
 
-double averagedTemp(double* list, int elementCount)
+double averagedTemp(double* list, uint16_t elementCount)
 {
   double sum = 0;
-  for (int i = 0; i < elementCount; i++)
+  for (uint16_t i = 0; i < elementCount; i++)
   {
     sum += list[i];
   }
   return sum / elementCount;
 }
 
-int pwmValue = 64;
+uint8_t pwmValue = 64;
 void controlFans(int override)
 {
   if (pwmValue == 255)
@@ -105,7 +105,7 @@ void controlFans(int override)
     analogWrite(pwmPin, override);
 }
 
-unsigned int cycleCounter = 0;
+uint32_t cycleCounter = 0;
 void loop()
 {
   cycleCounter++;
@@ -126,17 +126,17 @@ void loop()
   }
 
   // sets the PWM control value
-  controlFans(0);
+  controlFans(60);
 
   if (cycleCounter % cyclesPerFiveSecond == 0)
   {
     // get rpm value with interrupts disabled and zero counter
     noInterrupts();
-    unsigned long rpmCounterRead = rpmCounter;
+    uint32_t rpmCounterRead = rpmCounter;
     rpmCounter = 0;
     interrupts();
     
-    unsigned long fanRPM = (rpmCounterRead * 12L) / fanDivisor;
+    uint32_t fanRPM = (rpmCounterRead * 12L) / fanDivisor;
     Serial.print("Fan RPM = ");
     Serial.println(fanRPM, DEC);
     
