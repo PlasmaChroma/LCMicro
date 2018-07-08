@@ -1,5 +1,8 @@
 #include "font7seg.h"
 #include "ht16k33.h"
+#include "timer.h"
+
+#include <stdint.h>
 
 // Class to control the ht16k33 display chip
 HT16K33 htd;
@@ -23,6 +26,7 @@ const int fanDivisor = 2; // unipole hall effect sensor
 
 // interrupt handler for fan rpm reading
 int rpmCounter = 0;
+timer rpmTimer;
 void rpmCallback()
 {
   rpmCounter++;
@@ -32,7 +36,7 @@ void setup()
 {
   htd.define7segFont(font7s);
   htd.begin(0x70);
-  htd.setBrightness(16);
+  htd.setBrightness(2);
 
   // fan pwm control
   pinMode(pwmPin, OUTPUT);
@@ -126,18 +130,24 @@ void loop()
   }
 
   // sets the PWM control value
-  controlFans(60);
+  controlFans(1);
 
-  if (cycleCounter % cyclesPerFiveSecond == 0)
+  uint32_t elapsedMicro = rpmTimer.getDeltaMicro();
+  if (elapsedMicro > 10000000)
   {
     // get rpm value with interrupts disabled and zero counter
     noInterrupts();
     uint32_t rpmCounterRead = rpmCounter;
     rpmCounter = 0;
+    rpmTimer.set();
     interrupts();
+
+    double scaleFactor = (60000000 / elapsedMicro);
     
-    uint32_t fanRPM = (rpmCounterRead * 12L) / fanDivisor;
-    Serial.print("Fan RPM = ");
+    uint32_t fanRPM = (rpmCounterRead * scaleFactor) / fanDivisor;
+    Serial.print("Elapsed = ");
+    Serial.print(elapsedMicro / 1000000.0, DEC);
+    Serial.print("  Fan RPM = ");
     Serial.println(fanRPM, DEC);
     
   }
