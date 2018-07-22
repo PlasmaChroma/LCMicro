@@ -45,7 +45,7 @@ bool CommandLine::update()
                     char* split = strtok(this->input.buffer, " ");
                     uint8_t length = strnlen(split, COMMANDLINE_BUFFER);
 
-                    // Handle post command callback.
+                    // Handle pre command callback.
                     #ifdef COMMANDLINE_PRE_POST
                         if (this->preCallback != NULL) {
                             this->preCallback(this->input.buffer);

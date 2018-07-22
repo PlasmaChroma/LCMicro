@@ -30,7 +30,6 @@ const int fanDivisor = 2; // unipole hall effect sensor
 
 // interrupt handler for fan rpm reading
 int rpmCounter = 0;
-timer rpmTimer;
 void rpmCallback()
 {
   rpmCounter++;
@@ -41,9 +40,10 @@ void rpmCallback()
 // **********************************
 void helpCallback(char* tokens)
 {
-  Serial.println("bright <x> : change brightness (x = 1-15)");
+  Serial.println("bright <x> : change brightness (0:off - 15:max)");
   Serial.println("status     : print current temp & pwm info");
-  Serial.println("reset      : toggle reset line voltage");
+  Serial.println("reset      : toggle motherboard reset");
+  
 }
 
 void resetCallback(char* tokens)
@@ -84,16 +84,21 @@ void resetCallback(char* tokens)
 void brightCallback(char* tokens)
 {
   char buffer[32];
-  sprintf(buffer, "Tokens: %s", tokens);
+  char* brightStr = strtok(NULL, " ");
+  sprintf(buffer, "brightStr: %s", brightStr);
   Serial.println(buffer);
-  int bright = atoi(tokens);
-  if (bright >= 0 && bright <= 16)
-  {
+  uint8_t bright = atoi(brightStr);
+  if (bright > 0 && bright <= 15) {
     Serial.print("Brightness is now: ");
     Serial.println(bright, DEC);
-    htd.setBrightness(bright);
-  } else {
-    Serial.println("Invalid brightness parameter");
+    htd.displayOn();
+    htd.setBrightness(bright - 1);
+  }
+  if (bright == 0) {
+    htd.displayOff();
+  }
+  if (bright > 15) {
+    Serial.println("Please enter number from 0 to 15");
   }
 }
 
@@ -120,6 +125,7 @@ void setup()
   commandLine.add((char*)"help", helpCallback);
   commandLine.add((char*)"reset", resetCallback);
   commandLine.add((char*)"bright", brightCallback);
+
 }
 
 double readTempC(double tempPin)
@@ -129,15 +135,6 @@ double readTempC(double tempPin)
   tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK );       //  Temp Kelvin
   double tempC = tempK - 273.15;            // Convert Kelvin to Celcius
   double tempF = (tempC * 9.0)/ 5.0 + 32.0; // Convert Celcius to Fahrenheit
-/*
-  Serial.print("Raw:");
-  Serial.print(tempReading, DEC);
-  Serial.print("  C:");
-  Serial.print(tempC, DEC);
-  Serial.print("  F:");
-  Serial.print(tempF, DEC);
-  Serial.println("");
-*/
   return tempC;
 }
 
@@ -183,13 +180,20 @@ void controlFans(int override)
 }
 
 uint32_t cycleCounter = 0;
+uint32_t elapsedMicro;
 void loop()
 {
   cycleCounter++;
-  
-  double liquidTemp = readTempC(tempPin);
-  readings[readingsIndex] = liquidTemp;
-  readingsIndex++;
+
+  static timer tempReadTimer;
+  elapsedMicro = tempReadTimer.getDeltaMicro();
+  if (elapsedMicro > 100000)
+  {
+    double liquidTemp = readTempC(tempPin);
+    readings[readingsIndex] = liquidTemp;
+    readingsIndex++;
+    tempReadTimer.set();
+  }
 
   if (readingsIndex == TEMP_READING_COUNT)
   {
@@ -205,7 +209,8 @@ void loop()
   // sets the PWM control value
   controlFans(1);
 
-  uint32_t elapsedMicro = rpmTimer.getDeltaMicro();
+  static timer rpmTimer;
+  elapsedMicro = rpmTimer.getDeltaMicro();
   if (elapsedMicro > 10000000)
   {
     // get rpm value with interrupts disabled and zero counter
@@ -227,5 +232,5 @@ void loop()
 
   commandLine.update();
 
-  delay(loopDelay);
+  delay(1);
 }
