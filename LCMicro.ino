@@ -1,8 +1,10 @@
 #include "font7seg.h"
 #include "ht16k33.h"
 #include "timer.h"
-
+#include "CommandLine.h"
 #include <stdint.h>
+
+CommandLine commandLine(Serial, (char*)("> "));
 
 // Class to control the ht16k33 display chip
 HT16K33 htd;
@@ -11,6 +13,8 @@ HT16K33 htd;
 const uint8_t tempPin = 0;
 const uint8_t pwmPin = 6;
 const uint8_t rpmPin = 7;
+const uint8_t resetPin1 = 11;
+const uint8_t resetPin2 = 12;
 
 // Temperature reading setup
 #define TEMP_READING_COUNT 10
@@ -32,11 +36,75 @@ void rpmCallback()
   rpmCounter++;
 }
 
+// **********************************
+// **    Command line callbacks    **
+// **********************************
+void helpCallback(char* tokens)
+{
+  Serial.println("bright <x> : change brightness (x = 1-15)");
+  Serial.println("status     : print current temp & pwm info");
+  Serial.println("reset      : toggle reset line voltage");
+}
+
+void resetCallback(char* tokens)
+{
+  int val1 = digitalRead(resetPin1);
+  int val2 = digitalRead(resetPin2);
+  Serial.print("Pin Detect V1:");
+  Serial.print(val1, DEC);
+  Serial.print(" V2:");
+  Serial.println(val2, DEC);
+
+  Serial.println("asserting reset in 0.2 second");
+  delay(200);
+
+  // depending on how this is wired, pull down the active pin
+  if (val1 == HIGH && val2 == LOW)
+  {
+    pinMode(resetPin1, OUTPUT);
+    digitalWrite(resetPin1, LOW);
+  }
+  if (val1 == LOW && val2 == HIGH)
+  {
+    pinMode(resetPin2, OUTPUT);
+    digitalWrite(resetPin2, LOW);   
+  }
+  if (val1 == LOW && val2 == LOW)
+  {
+    Serial.println("could not detect active pin");
+  }
+
+  delay(1); // 1 millisecond
+
+  // stop output, set pins back to input
+  pinMode(resetPin1, INPUT);
+  pinMode(resetPin2, INPUT);
+}
+
+void brightCallback(char* tokens)
+{
+  char buffer[32];
+  sprintf(buffer, "Tokens: %s", tokens);
+  Serial.println(buffer);
+  int bright = atoi(tokens);
+  if (bright >= 0 && bright <= 16)
+  {
+    Serial.print("Brightness is now: ");
+    Serial.println(bright, DEC);
+    htd.setBrightness(bright);
+  } else {
+    Serial.println("Invalid brightness parameter");
+  }
+}
+
 void setup()
 {
   htd.define7segFont(font7s);
   htd.begin(0x70);
   htd.setBrightness(2);
+
+  pinMode(resetPin1, INPUT);
+  pinMode(resetPin2, INPUT);
 
   // fan pwm control
   pinMode(pwmPin, OUTPUT);
@@ -47,6 +115,11 @@ void setup()
 
   // debug port
   Serial.begin(115200);
+
+  // commands
+  commandLine.add((char*)"help", helpCallback);
+  commandLine.add((char*)"reset", resetCallback);
+  commandLine.add((char*)"bright", brightCallback);
 }
 
 double readTempC(double tempPin)
@@ -145,12 +218,14 @@ void loop()
     double scaleFactor = (60000000 / elapsedMicro);
     
     uint32_t fanRPM = (rpmCounterRead * scaleFactor) / fanDivisor;
-    Serial.print("Elapsed = ");
-    Serial.print(elapsedMicro / 1000000.0, DEC);
-    Serial.print("  Fan RPM = ");
-    Serial.println(fanRPM, DEC);
+//    Serial.print("Elapsed = ");
+//    Serial.print(elapsedMicro / 1000000.0, DEC);
+//    Serial.print("  Fan RPM = ");
+//    Serial.println(fanRPM, DEC);
     
   }
+
+  commandLine.update();
 
   delay(loopDelay);
 }
