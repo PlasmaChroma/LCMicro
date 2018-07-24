@@ -83,10 +83,7 @@ void resetCallback(char* tokens)
 
 void brightCallback(char* tokens)
 {
-  char buffer[32];
   char* brightStr = strtok(NULL, " ");
-  sprintf(buffer, "brightStr: %s", brightStr);
-  Serial.println(buffer);
   uint8_t bright = atoi(brightStr);
   if (bright > 0 && bright <= 15) {
     Serial.print("Brightness is now: ");
