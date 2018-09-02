@@ -5,6 +5,8 @@
 extern HT16K33 htd;
 extern const uint8_t resetPin1;
 extern const uint8_t resetPin2;
+extern double g_avgTemp;
+extern uint32_t g_fanRPM;
 
 // **********************************
 // **    Command line callbacks    **
@@ -14,7 +16,7 @@ void helpCallback(char* tokens)
   Serial.println("bright <x> : change brightness (0:off - 15:max)");
   Serial.println("status     : print current temp & pwm info");
   Serial.println("reset      : toggle motherboard reset");
-  
+
 }
 
 void resetCallback(char* tokens)
@@ -38,7 +40,7 @@ void resetCallback(char* tokens)
   if (val1 == LOW && val2 == HIGH)
   {
     pinMode(resetPin2, OUTPUT);
-    digitalWrite(resetPin2, LOW);   
+    digitalWrite(resetPin2, LOW);
   }
   if (val1 == LOW && val2 == LOW)
   {
@@ -70,3 +72,17 @@ void brightCallback(char* tokens)
   }
 }
 
+void statusCallback(char* tokens)
+{
+  Serial.println("LCMicro Status");
+  Serial.print("Temperature (C): ");
+  uint32_t wholePart = (uint32_t)g_avgTemp;
+  uint32_t tensPart = (g_avgTemp - wholePart) * 10.0;
+  Serial.print(wholePart, DEC);
+  Serial.print(".");
+  Serial.print(tensPart, DEC);
+  Serial.println("");
+  Serial.print("Fan RPM: ");
+  Serial.print(g_fanRPM, DEC);
+  Serial.println("");
+}

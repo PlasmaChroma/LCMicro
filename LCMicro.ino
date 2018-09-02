@@ -9,6 +9,12 @@
 
 CommandLine commandLine(Serial, (char*)("> "));
 
+// Status & Control items
+double   g_avgTemp = 0.0;
+uint32_t g_fanRPM = 0;
+ControlMode g_ControlMode = MODE_FIXED_RPM;
+uint32_t g_fanRPMTarget = 800;
+
 // Class to control the ht16k33 display chip
 HT16K33 htd;
 
@@ -61,7 +67,7 @@ void setup()
   commandLine.add((char*)"help", helpCallback);
   commandLine.add((char*)"reset", resetCallback);
   commandLine.add((char*)"bright", brightCallback);
-
+  commandLine.add((char*)"status", statusCallback);
 }
 
 double readTempC(double tempPin)
@@ -134,11 +140,11 @@ void loop()
   if (readingsIndex == TEMP_READING_COUNT)
   {
     readingsIndex = 0;
-    double avgTemp = averagedTemp(readings, TEMP_READING_COUNT);
+    g_avgTemp = averagedTemp(readings, TEMP_READING_COUNT);
 
     //Serial.println(avgTemp, DEC);
     // output to i2c 4-digit display
-    outputTempC(avgTemp);
+    outputTempC(g_avgTemp);
     htd.sendLed();
   }
 
@@ -158,7 +164,7 @@ void loop()
 
     double scaleFactor = (60000000 / elapsedMicro);
     
-    uint32_t fanRPM = (rpmCounterRead * scaleFactor) / fanDivisor;
+    g_fanRPM = (rpmCounterRead * scaleFactor) / fanDivisor;
 //    Serial.print("Elapsed = ");
 //    Serial.print(elapsedMicro / 1000000.0, DEC);
 //    Serial.print("  Fan RPM = ");
