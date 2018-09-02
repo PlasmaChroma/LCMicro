@@ -8,17 +8,17 @@
 
 // Number of commands to support.
 #ifndef COMMANDLINE_COUNT
-    #define COMMANDLINE_COUNT 8
+#define COMMANDLINE_COUNT 8
 #endif
 
 // Maximum number of characters in input buffer.
 #ifndef COMMANDLINE_BUFFER
-    #define COMMANDLINE_BUFFER 32
+#define COMMANDLINE_BUFFER 32
 #endif
 
 // Maximum number of commands to keep in history (for up/down support).
 #ifndef COMMANDLINE_HISTORY
-    #define COMMANDLINE_HISTORY 2
+#define COMMANDLINE_HISTORY 2
 #endif
 
 // Add support for pre and post command execution.
@@ -36,10 +36,9 @@
 /**
  * Command definition
  */
-struct Command
-{
-    char* command;
-    void (*callback)(char*);
+struct Command {
+    char *command;
+    void (*callback)(char *);
 
     /**
      * Construct a new command
@@ -47,24 +46,22 @@ struct Command
      * @param command Name of the command
      * @param callback Function pointer
      */
-    Command(char* _command, void (*_callback)(char*)): command(_command), callback(_callback) {}
+    Command(char *_command, void (*_callback)(char *))
+        : command(_command), callback(_callback) {}
 };
 
 /**
  * CommandLine instance.
  */
-class CommandLine
-{
-
-public:
-
+class CommandLine {
+  public:
     /**
      * Construct a new CommandLine instance
      *
      * @param serial Serial stream to wrap
      * @param token Command line token to indicate new line (e.g. "> ")
      */
-    CommandLine(Stream& serial, char* token);
+    CommandLine(Stream &serial, char *token);
 
     /**
      * Read the serial stream and evaluate commands.
@@ -79,7 +76,7 @@ public:
      * @param Comand instance to add.
      * @return True on success, false otherwise.
      */
-    bool add(Command& command);
+    bool add(Command &command);
 
     /**
      * Add a new command, dynamically.
@@ -88,7 +85,7 @@ public:
      * @param callback Function pointer.
      * @return True on success, false otherwise.
      */
-    bool add(char* command, void (*callback)(char*));
+    bool add(char *command, void (*callback)(char *));
 
     /**
      * Remove a command instance
@@ -96,60 +93,57 @@ public:
      * @param Comand instance to remove.
      * @return True on success, false otherwise.
      */
-    bool remove(Command& command);
+    bool remove(Command &command);
 
-    #ifdef COMMANDLINE_PRE_POST
-        /**
-         * Attach pre-command execution handler. This callback is invoked
-         * before each non-empty input command. Set to NULL to clear.
-         *
-         * @param callback Function pointer callback. Parameter is input the
-         *                 string.
-         */
-        void attachPre(void (*callback)(char*));
+#ifdef COMMANDLINE_PRE_POST
+    /**
+     * Attach pre-command execution handler. This callback is invoked
+     * before each non-empty input command. Set to NULL to clear.
+     *
+     * @param callback Function pointer callback. Parameter is input the
+     *                 string.
+     */
+    void attachPre(void (*callback)(char *));
 
-        /**
-         * Attach post-command execution handler. This callback is invoked
-         * after each non-empty input command. Set to NULL to clear.
-         *
-         * @param callback Function pointer callback. First parameter is the
-         *                 input string, second parameter indicates success.
-         */
-        void attachPost(void (*callback)(char*, bool));
-    #endif
+    /**
+     * Attach post-command execution handler. This callback is invoked
+     * after each non-empty input command. Set to NULL to clear.
+     *
+     * @param callback Function pointer callback. First parameter is the
+     *                 input string, second parameter indicates success.
+     */
+    void attachPost(void (*callback)(char *, bool));
+#endif
 
-private:
-    Stream& serial;
+  private:
+    Stream &serial;
 
-    struct
-    {
+    struct {
         uint8_t index;
         char buffer[COMMANDLINE_BUFFER + 1];
     } input;
 
-    struct
-    {
+    struct {
         uint8_t index;
-        Command* items[COMMANDLINE_COUNT];
+        Command *items[COMMANDLINE_COUNT];
     } commands;
 
-    #if COMMANDLINE_HISTORY > 0
-        struct
-        {
-            uint8_t current;
-            uint8_t index;
-            char items[COMMANDLINE_HISTORY][COMMANDLINE_BUFFER + 1];
-        } history;
+#if COMMANDLINE_HISTORY > 0
+    struct {
+        uint8_t current;
+        uint8_t index;
+        char items[COMMANDLINE_HISTORY][COMMANDLINE_BUFFER + 1];
+    } history;
 
-        void restore();
-    #endif
+    void restore();
+#endif
 
-    char* token;
+    char *token;
 
-    #ifdef COMMANDLINE_PRE_POST
-        void (*preCallback)(char*);
-        void (*postCallback)(char*, bool);
-    #endif
+#ifdef COMMANDLINE_PRE_POST
+    void (*preCallback)(char *);
+    void (*postCallback)(char *, bool);
+#endif
 };
 
 #endif
