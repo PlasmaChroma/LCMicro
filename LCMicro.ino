@@ -96,16 +96,10 @@ double averagedTemp(double *list, uint16_t elementCount) {
     return sum / elementCount;
 }
 
-uint8_t pwmValue = 64;
-void controlFans(int override) {
-    if (pwmValue == 255) {
-        pwmValue = 32;
-    }
-
-    if (override == 256)
-        analogWrite(pwmPin, pwmValue++);
-    else
-        analogWrite(pwmPin, override);
+void controlFans(uint8_t effortPercentage) {
+    double fractionalEffort = effortPercentage / 100.0;
+    uint8_t byteEffort = 255.0 * fractionalEffort;
+    analogWrite(pwmPin, byteEffort);
 }
 
 uint32_t cycleCounter = 0;
@@ -133,10 +127,11 @@ void loop() {
     }
 
     // sets the PWM control value
-    controlFans(1);
+    controlFans(ControlData.fanEffort);
 
     static timer rpmTimer;
     elapsedMicro = rpmTimer.getDeltaMicro();
+    // recalculate fan rpm every 10 seconds
     if (elapsedMicro > 10000000) {
         // get rpm value with interrupts disabled and zero counter
         noInterrupts();

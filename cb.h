@@ -13,6 +13,7 @@ struct ControlData_t{
     uint32_t fanRPM = 0;
     ControlMode mode = MODE_FIXED_RPM;
     uint32_t fanRPMTarget = 800;
+    uint8_t fanEffort = 33;
 };
 
 void helpCallback(char *tokens);

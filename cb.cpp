@@ -77,4 +77,23 @@ void statusCallback(char *tokens) {
     Serial.print("Fan RPM: ");
     Serial.print(ControlData.fanRPM, DEC);
     Serial.println("");
+    Serial.print("Mode: ");
+    switch(ControlData.mode)
+    {
+        case MODE_FIXED_RPM:
+            Serial.print("Fixed RPM @ ");
+            Serial.print(ControlData.fanRPMTarget);
+            break;
+        case MODE_MIN_MAX:
+            Serial.print("Min/Max Temperature Mode");
+            Serial.print(" Min = ");
+            Serial.print("0");
+            Serial.print(" Max = ");
+            Serial.print("50");
+            break;
+        default:
+            Serial.print("Invalid Mode Set");
+            break;
+    }
+    Serial.println("");
 }
