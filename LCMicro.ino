@@ -96,10 +96,17 @@ double averagedTemp(double *list, uint16_t elementCount) {
     return sum / elementCount;
 }
 
+// max effort of "100%" translates to analog pwm of 255
 void controlFans(uint8_t effortPercentage) {
     double fractionalEffort = effortPercentage / 100.0;
     uint8_t byteEffort = 255.0 * fractionalEffort;
     analogWrite(pwmPin, byteEffort);
+}
+
+void limitFanEffort(uint8_t &e)
+{
+    if (e < 1) e = 1;
+    if (e > 100) e = 100;
 }
 
 uint32_t cycleCounter = 0;
@@ -143,6 +150,24 @@ void loop() {
         double scaleFactor = (60000000 / elapsedMicro);
 
         ControlData.fanRPM = (rpmCounterRead * scaleFactor) / fanDivisor;
+
+        // if we're in fixed RPM mode now adjust the fan effort
+        if (ControlData.mode == MODE_FIXED_RPM)
+        {
+            if (ControlData.fanRPM > ControlData.fanRPMTarget)
+            {
+                Serial.println("lowering fan effort");
+                ControlData.fanEffort--;
+            }
+            if (ControlData.fanRPM < ControlData.fanRPMTarget)
+            {
+                Serial.println("raising fan effort");
+                ControlData.fanEffort++;
+            }
+
+            limitFanEffort(ControlData.fanEffort);
+        }
+
         // Serial.print("Elapsed = ");
         // Serial.print(elapsedMicro / 1000000.0, DEC);
         // Serial.print("  Fan RPM = ");
